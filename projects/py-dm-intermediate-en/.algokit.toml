@@ -37,6 +37,10 @@ lint = { commands = [
   'poetry run ruff .',
   'poetry run mypy',
 ], description = 'Perform linting' }
+lint-fix = { commands = [
+  'poetry run black .',
+  'poetry run ruff . --fix',
+], description = 'Perform linting with --fix' }
 audit-teal = { commands = [
   # 🚨 IMPORTANT 🚨: For strict TEAL validation, remove --exclude statements. The default starter contract is not for production. Ensure thorough testing and adherence to best practices in smart contract development. This is not a replacement for a professional audit.
   'algokit task analyze smart_contracts/artifacts --recursive --force --exclude rekey-to --exclude is-updatable --exclude missing-fee-check --exclude is-deletable --exclude can-close-asset --exclude can-close-account --exclude unprotected-deletable --exclude unprotected-updatable',
