@@ -21,7 +21,7 @@ from smart_contracts.artifacts.digital_marketplace.client import (
     DigitalMarketplaceClient,
 )
 
-FOR_SALE_MBR = 2_500 + 64 * 400 - 1
+FOR_SALE_MBR = 2_500 + 64 * 400
 
 
 @pytest.fixture(scope="session")
