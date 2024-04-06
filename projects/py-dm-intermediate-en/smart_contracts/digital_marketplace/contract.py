@@ -83,13 +83,13 @@ class DigitalMarketplace(arc4.ARC4Contract):
         asset: Asset,
         nonce: arc4.UInt64,
         buy_pay: gtxn.PaymentTransaction,
-        quantity: arc4.UInt64,
+        quantity: UInt64,
     ) -> None:
         box_key = owner.bytes + op.itob(asset.id) + nonce.bytes
 
         current_unitary_price = op.btoi(op.Box.extract(box_key, 8, 8))
         amount_not_scaled_high, amount_not_scaled_low = op.mulw(
-            current_unitary_price, quantity.native
+            current_unitary_price, quantity
         )
         scaling_factor_high, scaling_factor_low = op.expw(10, asset.decimals)
         _quotient_high, amount_to_be_paid, _remainder_high, _remainder_low = op.divmodw(
@@ -105,10 +105,10 @@ class DigitalMarketplace(arc4.ARC4Contract):
         assert buy_pay.amount == amount_to_be_paid
 
         current_deposited = op.btoi(op.Box.extract(box_key, 0, 8))
-        op.Box.replace(box_key, 0, op.itob(current_deposited - quantity.native))
+        op.Box.replace(box_key, 0, op.itob(current_deposited - quantity))
 
         itxn.AssetTransfer(
             xfer_asset=asset,
             asset_receiver=Txn.sender,
-            asset_amount=quantity.native,
+            asset_amount=quantity,
         ).submit()

@@ -165,6 +165,7 @@ main_buy_route@7:
     ==
     assert // transaction type is pay
     txna ApplicationArgs 4
+    btoi
     // smart_contracts/digital_marketplace/contract.py:79
     // @arc4.abimethod
     callsub buy
@@ -471,7 +472,7 @@ withdraw:
     retsub
 
 
-// smart_contracts.digital_marketplace.contract.DigitalMarketplace.buy(owner: bytes, asset: uint64, nonce: bytes, buy_pay: uint64, quantity: bytes) -> void:
+// smart_contracts.digital_marketplace.contract.DigitalMarketplace.buy(owner: bytes, asset: uint64, nonce: bytes, buy_pay: uint64, quantity: uint64) -> void:
 buy:
     // smart_contracts/digital_marketplace/contract.py:79-87
     // @arc4.abimethod
@@ -481,7 +482,7 @@ buy:
     //     asset: Asset,
     //     nonce: arc4.UInt64,
     //     buy_pay: gtxn.PaymentTransaction,
-    //     quantity: arc4.UInt64,
+    //     quantity: UInt64,
     // ) -> None:
     proto 5 0
     // smart_contracts/digital_marketplace/contract.py:88
@@ -500,16 +501,11 @@ buy:
     dup
     box_extract
     btoi
-    // smart_contracts/digital_marketplace/contract.py:92
-    // current_unitary_price, quantity.native
-    frame_dig -1
-    btoi
     // smart_contracts/digital_marketplace/contract.py:91-93
     // amount_not_scaled_high, amount_not_scaled_low = op.mulw(
-    //     current_unitary_price, quantity.native
+    //     current_unitary_price, quantity
     // )
-    dup
-    cover 2
+    frame_dig -1
     mulw
     swap
     // smart_contracts/digital_marketplace/contract.py:94
@@ -561,32 +557,32 @@ buy:
     assert
     // smart_contracts/digital_marketplace/contract.py:107
     // current_deposited = op.btoi(op.Box.extract(box_key, 0, 8))
-    dig 1
+    dup
     int 0
     int 8
     box_extract
     btoi
     // smart_contracts/digital_marketplace/contract.py:108
-    // op.Box.replace(box_key, 0, op.itob(current_deposited - quantity.native))
-    dig 1
+    // op.Box.replace(box_key, 0, op.itob(current_deposited - quantity))
+    frame_dig -1
     -
     itob
-    uncover 2
     int 0
-    uncover 2
+    swap
     box_replace
     // smart_contracts/digital_marketplace/contract.py:110-114
     // itxn.AssetTransfer(
     //     xfer_asset=asset,
     //     asset_receiver=Txn.sender,
-    //     asset_amount=quantity.native,
+    //     asset_amount=quantity,
     // ).submit()
     itxn_begin
     // smart_contracts/digital_marketplace/contract.py:112
     // asset_receiver=Txn.sender,
     txn Sender
-    itxn_field AssetReceiver
+    frame_dig -1
     itxn_field AssetAmount
+    itxn_field AssetReceiver
     frame_dig -4
     itxn_field XferAsset
     // smart_contracts/digital_marketplace/contract.py:110
@@ -597,7 +593,7 @@ buy:
     // itxn.AssetTransfer(
     //     xfer_asset=asset,
     //     asset_receiver=Txn.sender,
-    //     asset_amount=quantity.native,
+    //     asset_amount=quantity,
     // ).submit()
     itxn_submit
     retsub
