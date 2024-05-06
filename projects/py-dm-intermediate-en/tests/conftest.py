@@ -6,6 +6,7 @@ from algokit_utils import (
     get_indexer_client,
     is_localnet,
 )
+from algokit_utils.beta.algorand_client import AlgorandClient
 from algosdk.v2client.algod import AlgodClient
 from algosdk.v2client.indexer import IndexerClient
 from dotenv import load_dotenv
@@ -30,3 +31,11 @@ def algod_client() -> AlgodClient:
 @pytest.fixture(scope="session")
 def indexer_client() -> IndexerClient:
     return get_indexer_client()
+
+
+@pytest.fixture(scope="session")
+def algorand_client() -> AlgorandClient:
+    client = AlgorandClient.default_local_net()
+    client.set_suggested_params_timeout(0)
+
+    return client
