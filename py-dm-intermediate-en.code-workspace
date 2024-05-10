@@ -6,6 +6,9 @@
     },
     {
       "path": "projects/py-dm-intermediate-en"
+    },
+    {
+      "path": "projects/py-dm-intermediate-en-frontend"
     }
   ],
   "settings": {
