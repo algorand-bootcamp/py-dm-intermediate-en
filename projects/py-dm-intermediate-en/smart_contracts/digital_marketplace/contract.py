@@ -16,6 +16,7 @@ class DigitalMarketplace(arc4.ARC4Contract):
             xfer_asset=asset,
             asset_receiver=Global.current_application_address,
             asset_amount=0,
+            fee=0,
         ).submit()
 
     @arc4.abimethod
