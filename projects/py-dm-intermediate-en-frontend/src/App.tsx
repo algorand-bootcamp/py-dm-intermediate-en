@@ -6,6 +6,7 @@ import algosdk from 'algosdk'
 import { SnackbarProvider } from 'notistack'
 import Home from './Home'
 import { getAlgodConfigFromViteEnvironment, getKmdConfigFromViteEnvironment } from './utils/network/getAlgoClientConfigs'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 let providersArray: ProvidersArray
 if (import.meta.env.VITE_ALGOD_NETWORK === '') {
@@ -47,10 +48,14 @@ export default function App() {
     algosdkStatic: algosdk,
   })
 
+  const queryClient = new QueryClient()
+
   return (
     <SnackbarProvider maxSnack={3}>
       <WalletProvider value={walletProviders}>
-        <Home />
+        <QueryClientProvider client={queryClient}>
+          <Home />
+        </QueryClientProvider>
       </WalletProvider>
     </SnackbarProvider>
   )

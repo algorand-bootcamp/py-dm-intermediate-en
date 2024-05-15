@@ -29,12 +29,11 @@ export function sell(
   seller: string,
   amountToSell: bigint,
   unitaryPrice: bigint,
-  setNewListing: (arg0: boolean) => void,
 ) {
   return async () => {
     const newAssetId = await algorand.send.assetCreate({
       sender: seller,
-      total: amountToSell * BigInt(1e3),
+      total: BigInt(100_000),
       decimals: 3,
     })
 
@@ -60,22 +59,30 @@ export function sell(
       receiver: appAddress,
       amount: algokit.algos(0.0281),
     })
-    const xfer = await algorand.transactions.assetTransfer({
+    const firstXfer = await algorand.transactions.assetTransfer({
       sender: seller,
       assetId: BigInt(newAssetId.confirmation.assetIndex),
-      amount: amountToSell * BigInt(1e3),
+      amount: amountToSell - 1n,
       receiver: appAddress,
     })
 
-    // TODO: Split into firstDeposit + deposit.
     await dmClient.firstDeposit({
       mbrPay: mbrPayDeposit,
-      xfer,
+      xfer: firstXfer,
       nonce: 0,
       unitaryPrice,
     })
 
-    setNewListing(true)
+    const secondXfer = await algorand.transactions.assetTransfer({
+      sender: seller,
+      assetId: BigInt(newAssetId.confirmation.assetIndex),
+      amount: 1n,
+      receiver: appAddress,
+    })
+    await dmClient.deposit({
+      xfer: secondXfer,
+      nonce: 0,
+    })
   }
 }
 
@@ -88,7 +95,6 @@ export function buy(
   nonce: bigint,
   quantity: bigint,
   unitaryPrice: bigint,
-  setNewListing: (arg0: boolean) => void,
 ) {
   return async () => {
     await algorand.send.assetOptIn({
@@ -110,8 +116,6 @@ export function buy(
       buyPay: buyerTxn,
       quantity,
     })
-
-    setNewListing(true)
   }
 }
 

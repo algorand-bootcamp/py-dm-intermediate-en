@@ -3,12 +3,13 @@ import { Config as AlgokitConfig } from '@algorandfoundation/algokit-utils'
 import AlgorandClient from '@algorandfoundation/algokit-utils/types/algorand-client'
 import { useWallet } from '@txnlab/use-wallet'
 import { decodeUint64, encodeAddress } from 'algosdk'
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import ConnectWallet from './components/ConnectWallet'
 import MethodCall from './components/MethodCall'
 import { DigitalMarketplaceClient } from './contracts/DigitalMarketplace'
 import * as methods from './methods'
 import { getAlgodConfigFromViteEnvironment } from './utils/network/getAlgoClientConfigs'
+import { useQuery } from '@tanstack/react-query'
 
 interface HomeProps {}
 
@@ -19,44 +20,31 @@ const Home: React.FC<HomeProps> = () => {
   const [appId, setAppId] = useState<number>(0)
   const [amountToSell, setAmountToSell] = useState<bigint>(0n)
   const [sellingPrice, setSellingPrice] = useState<bigint>(0n)
-  const [listings, setListings] = useState<{ seller: string; assetId: bigint; nonce: bigint; amount: bigint; unitaryPrice: bigint }[]>([])
-  const [newListing, setNewListing] = useState<boolean>(false)
+  const listingsQuery = useQuery({
+    queryKey: ['listings', appId],
+    queryFn: async () => {
+      const allBoxesNames = await algorand.client.algod.getApplicationBoxes(appId).do()
+      return await Promise.all(
+        allBoxesNames.boxes.map(async (box) => {
+          const boxContent = await algorand.client.algod.getApplicationBoxByName(appId, box.name).do()
+          return {
+            seller: encodeAddress(box.name.slice(0, 32)),
+            assetId: decodeUint64(box.name.slice(32, 40), 'bigint'),
+            nonce: decodeUint64(box.name.slice(40, 48), 'bigint'),
+            amount: decodeUint64(boxContent.value.slice(0, 8), 'bigint'),
+            unitaryPrice: decodeUint64(boxContent.value.slice(8, 16), 'bigint'),
+          }
+        }),
+      )
+    },
+    staleTime: 1_000,
+  })
   const [sellerAddress, setSellerAddress] = useState<string>('')
   const [assetToBuy, setAssetToBuy] = useState<bigint>(0n)
   const [buyingNonce, setBuyingNonce] = useState<bigint>(0n)
   const [buyingPrice, setBuyingPrice] = useState<bigint>(0n)
   const [buyingQuantity, setBuyingQuantity] = useState<bigint>(0n)
   const { activeAddress, signer } = useWallet()
-
-  useEffect(() => {
-    algorand.client.algod
-      .getApplicationBoxes(appId)
-      .do()
-      .then((boxesResponse) => {
-        boxesResponse.boxes.forEach((box) => {
-          algorand.client.algod
-            .getApplicationBoxByName(appId, box.name)
-            .do()
-            .then((boxContent) => {
-              setListings([
-                ...listings,
-                {
-                  seller: encodeAddress(box.name.slice(0, 32)),
-                  assetId: decodeUint64(box.name.slice(32, 40), 'bigint'),
-                  nonce: decodeUint64(box.name.slice(40, 48), 'bigint'),
-                  amount: decodeUint64(boxContent.value.slice(0, 8), 'bigint'),
-                  unitaryPrice: decodeUint64(boxContent.value.slice(8, 16), 'bigint'),
-                },
-              ])
-            })
-        })
-      })
-      .catch(() => {
-        setListings([])
-      })
-
-    setNewListing(false)
-  }, [appId, newListing])
 
   const algodConfig = getAlgodConfigFromViteEnvironment()
   const algorand = AlgorandClient.fromConfig({ algodConfig })
@@ -126,7 +114,7 @@ const Home: React.FC<HomeProps> = () => {
                   onChange={(e) => setSellingPrice(BigInt(e.currentTarget.value || 0))}
                 />
                 <MethodCall
-                  methodFunction={methods.sell(algorand, dmClient, activeAddress, amountToSell, sellingPrice, setNewListing)}
+                  methodFunction={methods.sell(algorand, dmClient, activeAddress, amountToSell, sellingPrice)}
                   text="Sell a new asset"
                 />
               </div>
@@ -136,11 +124,11 @@ const Home: React.FC<HomeProps> = () => {
 
             <div>
               <label className="label">Listings</label>
-              {appId !== 0 && (
+              {appId !== 0 && !listingsQuery.isError && (
                 <ul>
-                  {listings.map((listing) => (
+                  {listingsQuery.data?.map((listing) => (
                     <li
-                      key={listing.seller + listing.assetId + listing.nonce}
+                      key={listing.seller + listing.assetId.toString() + listing.nonce.toString()}
                     >{`assetId: ${listing.assetId}\namount: ${listing.amount}\nprice: ${listing.unitaryPrice}`}</li>
                   ))}
                 </ul>
@@ -196,7 +184,6 @@ const Home: React.FC<HomeProps> = () => {
                     buyingNonce,
                     buyingQuantity,
                     buyingPrice,
-                    setNewListing,
                   )}
                   text={`Buy ${buyingQuantity} unit for ${buyingPrice * BigInt(buyingQuantity)} microALGO`}
                 />
