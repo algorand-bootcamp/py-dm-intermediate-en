@@ -1,8 +1,8 @@
 // src/components/Home.tsx
-import { Config as AlgokitConfig } from '@algorandfoundation/algokit-utils'
+import { Config as AlgokitConfig, microAlgos } from '@algorandfoundation/algokit-utils'
 import AlgorandClient from '@algorandfoundation/algokit-utils/types/algorand-client'
 import { useWallet } from '@txnlab/use-wallet'
-import { decodeUint64, encodeAddress } from 'algosdk'
+import { decodeAddress, decodeUint64, encodeAddress, encodeUint64 } from 'algosdk'
 import React, { useState } from 'react'
 import ConnectWallet from './components/ConnectWallet'
 import MethodCall from './components/MethodCall'
@@ -44,6 +44,23 @@ const Home: React.FC<HomeProps> = () => {
   const [buyingNonce, setBuyingNonce] = useState<bigint>(0n)
   const [buyingPrice, setBuyingPrice] = useState<bigint>(0n)
   const [buyingQuantity, setBuyingQuantity] = useState<bigint>(0n)
+  const bestBidQuery = useQuery({
+    queryKey: ['bid', appId, sellerAddress, Number(assetToBuy), Number(buyingNonce)],
+    queryFn: async () => {
+      const boxContent = await algorand.client.algod
+        .getApplicationBoxByName(
+          appId,
+          new Uint8Array([...decodeAddress(sellerAddress).publicKey, ...encodeUint64(assetToBuy), ...encodeUint64(buyingNonce)]),
+        )
+        .do()
+      return {
+        bidder: encodeAddress(boxContent.value.slice(16, 48)),
+        bidQuantity: decodeUint64(boxContent.value.slice(48, 56), 'bigint'),
+        bidPrice: decodeUint64(boxContent.value.slice(56, 64), 'bigint'),
+      }
+    },
+    staleTime: 1_000,
+  })
   const { activeAddress, signer } = useWallet()
 
   const algodConfig = getAlgodConfigFromViteEnvironment()
@@ -185,10 +202,53 @@ const Home: React.FC<HomeProps> = () => {
                     buyingQuantity,
                     buyingPrice,
                   )}
-                  text={`Buy ${buyingQuantity} unit for ${buyingPrice * BigInt(buyingQuantity)} microALGO`}
+                  text={`Buy ${buyingQuantity} unit for ${Number(buyingPrice * buyingQuantity) / 1e9} microALGO`}
+                />
+                <MethodCall
+                  methodFunction={async () => {
+                    const { appAddress } = await dmClient.appClient.getAppReference()
+
+                    await dmClient.bid({
+                      owner: sellerAddress,
+                      asset: assetToBuy,
+                      nonce: buyingNonce,
+                      bidPay: await algorand.transactions.payment({
+                        sender: activeAddress,
+                        receiver: appAddress,
+                        amount: microAlgos(Number(buyingPrice * buyingQuantity) / 1e3),
+                        extraFee: microAlgos(1_000),
+                      }),
+                      quantity: buyingQuantity,
+                      unitaryPrice: buyingPrice,
+                    })
+                  }}
+                  text={`Bid ${Number(buyingPrice * buyingQuantity) / 1e9} ALGO for ${buyingQuantity} unit of ASA `}
                 />
               </div>
             )}
+
+            <div className="divider" />
+
+            <div>
+              <label className="label">Best bid</label>
+              {!bestBidQuery.isError && bestBidQuery.data && (
+                <div>
+                  {`quantity: ${bestBidQuery.data.bidQuantity}\nprice: ${bestBidQuery.data.bidPrice}`}
+                  <MethodCall
+                    methodFunction={async () => {
+                      await dmClient.acceptBid(
+                        {
+                          asset: assetToBuy,
+                          nonce: buyingNonce,
+                        },
+                        { sendParams: { fee: microAlgos(3_000) } },
+                      )
+                    }}
+                    text={`Accept ${Number(bestBidQuery.data.bidQuantity * bestBidQuery.data.bidPrice) / 1e9} ALGO bid`}
+                  />
+                </div>
+              )}
+            </div>
 
             {/*{activeAddress !== seller && appId !== 0 && unitsLeft === 0n && (*/}
             {/*  <button className="btn btn-disabled m-2" disabled={true}>*/}

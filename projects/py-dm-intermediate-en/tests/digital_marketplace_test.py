@@ -21,7 +21,10 @@ from smart_contracts.artifacts.digital_marketplace.client import (
     DigitalMarketplaceClient,
 )
 
-FOR_SALE_MBR = 2_500 + 64 * 400
+FOR_SALE_BOX_KEY_LENGTH = 48
+FOR_SALE_BOX_VALUE_LENGTH = 64
+FOR_SALE_BOX_SIZE = FOR_SALE_BOX_KEY_LENGTH + FOR_SALE_BOX_VALUE_LENGTH
+FOR_SALE_BOX_MBR = 2_500 + FOR_SALE_BOX_SIZE * 400
 
 
 @pytest.fixture(scope="session")
@@ -182,8 +185,7 @@ def test_first_deposit(
                     PayParams(
                         sender=creator.address,
                         receiver=digital_marketplace_client.app_address,
-                        amount=FOR_SALE_MBR,
-                        extra_fee=1_000,
+                        amount=FOR_SALE_BOX_MBR,
                     )
                 ),
                 creator.signer,
@@ -359,7 +361,7 @@ def test_withdraw(
 
         sp = algorand_client.client.algod.suggested_params()
         sp.flat_fee = True
-        sp.fee = 3_000
+        sp.fee = 4_000
         result = digital_marketplace_client.withdraw(
             asset=asset_id,
             nonce=0,
@@ -374,7 +376,7 @@ def test_withdraw(
             "amount"
         ]
 
-        assert after_call_amount - before_call_amount == FOR_SALE_MBR - 3_000
+        assert after_call_amount - before_call_amount == FOR_SALE_BOX_MBR - 4_000
         assert (
             algorand_client.client.algod.account_asset_info(creator.address, asset_id)[
                 "asset-holding"

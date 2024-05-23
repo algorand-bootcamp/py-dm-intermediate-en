@@ -57,7 +57,7 @@ export function sell(
     const mbrPayDeposit = await algorand.transactions.payment({
       sender: seller,
       receiver: appAddress,
-      amount: algokit.algos(0.0281),
+      amount: algokit.algos(0.0473),
     })
     const firstXfer = await algorand.transactions.assetTransfer({
       sender: seller,
