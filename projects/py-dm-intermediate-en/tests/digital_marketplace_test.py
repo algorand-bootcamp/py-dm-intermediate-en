@@ -21,7 +21,7 @@ from smart_contracts.artifacts.digital_marketplace.client import (
     DigitalMarketplaceClient,
 )
 
-FOR_SALE_BOX_KEY_LENGTH = 48
+FOR_SALE_BOX_KEY_LENGTH = 8 + 48
 FOR_SALE_BOX_VALUE_LENGTH = 64
 FOR_SALE_BOX_SIZE = FOR_SALE_BOX_KEY_LENGTH + FOR_SALE_BOX_VALUE_LENGTH
 FOR_SALE_BOX_MBR = 2_500 + FOR_SALE_BOX_SIZE * 400
@@ -174,7 +174,8 @@ def test_first_deposit(
 ) -> None:
     for asset_id in test_assets_id:
         box_key = (
-            algosdk.encoding.decode_address(creator.address)
+            b"listings"
+            + algosdk.encoding.decode_address(creator.address)
             + algosdk.encoding.encode_as_bytes(asset_id)
             + algosdk.encoding.encode_as_bytes(0)
         )
@@ -227,7 +228,8 @@ def test_deposit(
 ) -> None:
     for asset_id in test_assets_id:
         box_key = (
-            algosdk.encoding.decode_address(creator.address)
+            b"listings"
+            + algosdk.encoding.decode_address(creator.address)
             + algosdk.encoding.encode_as_bytes(asset_id)
             + algosdk.encoding.encode_as_bytes(0)
         )
@@ -270,7 +272,8 @@ def test_set_price(
 ) -> None:
     for asset_id, unitary_price in zip(test_assets_id, [3_200_000, 5_700_000]):
         box_key = (
-            algosdk.encoding.decode_address(creator.address)
+            b"listings"
+            + algosdk.encoding.decode_address(creator.address)
             + algosdk.encoding.encode_as_bytes(asset_id)
             + algosdk.encoding.encode_as_bytes(0)
         )
@@ -304,7 +307,8 @@ def test_buy(
 ) -> None:
     for asset_id, amount_to_pay in zip(test_assets_id, [6_793_600, 12_101_100]):
         box_key = (
-            algosdk.encoding.decode_address(creator.address)
+            b"listings"
+            + algosdk.encoding.decode_address(creator.address)
             + algosdk.encoding.encode_as_bytes(asset_id)
             + algosdk.encoding.encode_as_bytes(0)
         )
@@ -350,7 +354,8 @@ def test_withdraw(
 ) -> None:
     for asset_id in test_assets_id:
         box_key = (
-            algosdk.encoding.decode_address(creator.address)
+            b"listings"
+            + algosdk.encoding.decode_address(creator.address)
             + algosdk.encoding.encode_as_bytes(asset_id)
             + algosdk.encoding.encode_as_bytes(0)
         )
