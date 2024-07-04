@@ -35,7 +35,6 @@ class DigitalMarketplace(arc4.ARC4Contract):
             xfer_asset=asset,
             asset_receiver=Global.current_application_address,
             asset_amount=0,
-            fee=0,
         ).submit()
 
     @arc4.abimethod
@@ -95,19 +94,16 @@ class DigitalMarketplace(arc4.ARC4Contract):
                 op.btoi(op.Box.extract(box_key, 56, 8)),
                 asset.decimals,
             )
-            itxn.Payment(
-                receiver=current_bidder, amount=current_bid_deposit, fee=0
-            ).submit()
+            itxn.Payment(receiver=current_bidder, amount=current_bid_deposit).submit()
 
         _deleted = op.Box.delete(box_key)
 
-        itxn.Payment(receiver=Txn.sender, amount=FOR_SALE_BOX_MBR, fee=0).submit()
+        itxn.Payment(receiver=Txn.sender, amount=FOR_SALE_BOX_MBR).submit()
 
         itxn.AssetTransfer(
             xfer_asset=asset,
             asset_receiver=Txn.sender,
             asset_amount=current_deposited,
-            fee=0,
         ).submit()
 
     @arc4.abimethod
@@ -137,7 +133,6 @@ class DigitalMarketplace(arc4.ARC4Contract):
             xfer_asset=asset,
             asset_receiver=Txn.sender,
             asset_amount=quantity,
-            fee=0,
         ).submit()
 
     @arc4.abimethod
@@ -164,15 +159,19 @@ class DigitalMarketplace(arc4.ARC4Contract):
                 current_bid_quantity, current_bid_unitary_price, asset.decimals
             )
 
-            itxn.Payment(receiver=current_bidder, amount=current_bid_amount, fee=0).submit()
+            itxn.Payment(receiver=current_bidder, amount=current_bid_amount).submit()
 
-        amount_to_be_bid = self.quantity_price(quantity.native, unitary_price.native, asset.decimals)
+        amount_to_be_bid = self.quantity_price(
+            quantity.native, unitary_price.native, asset.decimals
+        )
 
         assert bid_pay.sender == Txn.sender
         assert bid_pay.receiver == Global.current_application_address
         assert bid_pay.amount == amount_to_be_bid
 
-        op.Box.replace(box_key, 16, Txn.sender.bytes + quantity.bytes + unitary_price.bytes)
+        op.Box.replace(
+            box_key, 16, Txn.sender.bytes + quantity.bytes + unitary_price.bytes
+        )
 
     @arc4.abimethod
     def accept_bid(self, asset: Asset, nonce: arc4.UInt64) -> None:
@@ -188,12 +187,16 @@ class DigitalMarketplace(arc4.ARC4Contract):
 
         assert current_unitary_price > best_bid_unitary_price
 
-        min_quantity = current_deposited if current_deposited < best_bid_quantity else best_bid_quantity
+        min_quantity = (
+            current_deposited
+            if current_deposited < best_bid_quantity
+            else best_bid_quantity
+        )
         best_bid_amount = self.quantity_price(
             min_quantity, best_bid_unitary_price, asset.decimals
         )
 
-        itxn.Payment(receiver=Txn.sender, amount=best_bid_amount, fee=0).submit()
+        itxn.Payment(receiver=Txn.sender, amount=best_bid_amount).submit()
 
         itxn.AssetTransfer(
             xfer_asset=asset, asset_receiver=best_bidder, asset_amount=min_quantity
