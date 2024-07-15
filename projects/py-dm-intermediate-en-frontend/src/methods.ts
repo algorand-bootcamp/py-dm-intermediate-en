@@ -54,10 +54,12 @@ export function sell(
       asset: newAssetId.confirmation.assetIndex,
     })
 
+    const boxMbr = (await dmClient.compose().getListingsMbr({}).simulate()).returns[0]
+
     const mbrPayDeposit = await algorand.transactions.payment({
       sender: seller,
       receiver: appAddress,
-      amount: algokit.algos(0.0473),
+      amount: algokit.microAlgos(Number(boxMbr)),
     })
     const firstXfer = await algorand.transactions.assetTransfer({
       sender: seller,

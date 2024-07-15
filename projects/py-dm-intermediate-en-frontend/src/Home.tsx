@@ -27,10 +27,11 @@ const Home: React.FC<HomeProps> = () => {
       return await Promise.all(
         allBoxesNames.boxes.map(async (box) => {
           const boxContent = await algorand.client.algod.getApplicationBoxByName(appId, box.name).do()
+          const keyPrefix = 'listings'.length
           return {
-            seller: encodeAddress(box.name.slice(0, 32)),
-            assetId: decodeUint64(box.name.slice(32, 40), 'bigint'),
-            nonce: decodeUint64(box.name.slice(40, 48), 'bigint'),
+            seller: encodeAddress(box.name.slice(keyPrefix + 0, keyPrefix + 32)),
+            assetId: decodeUint64(box.name.slice(keyPrefix + 32, keyPrefix + 40), 'bigint'),
+            nonce: decodeUint64(box.name.slice(keyPrefix + 40, keyPrefix + 48), 'bigint'),
             amount: decodeUint64(boxContent.value.slice(0, 8), 'bigint'),
             unitaryPrice: decodeUint64(boxContent.value.slice(8, 16), 'bigint'),
           }
@@ -50,7 +51,12 @@ const Home: React.FC<HomeProps> = () => {
       const boxContent = await algorand.client.algod
         .getApplicationBoxByName(
           appId,
-          new Uint8Array([...decodeAddress(sellerAddress).publicKey, ...encodeUint64(assetToBuy), ...encodeUint64(buyingNonce)]),
+          new Uint8Array([
+            ...Buffer.from('listings'),
+            ...decodeAddress(sellerAddress).publicKey,
+            ...encodeUint64(assetToBuy),
+            ...encodeUint64(buyingNonce),
+          ]),
         )
         .do()
       return {

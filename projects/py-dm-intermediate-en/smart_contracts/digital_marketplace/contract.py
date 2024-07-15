@@ -13,11 +13,6 @@ from algopy import (
     subroutine,
 )
 
-FOR_SALE_BOX_KEY_LENGTH = 8 + 48
-FOR_SALE_BOX_VALUE_LENGTH = 64
-FOR_SALE_BOX_SIZE = FOR_SALE_BOX_KEY_LENGTH + FOR_SALE_BOX_VALUE_LENGTH
-FOR_SALE_BOX_MBR = 2_500 + FOR_SALE_BOX_SIZE * 400
-
 
 class ListingKey(arc4.Struct):
     owner: arc4.Address
@@ -36,6 +31,27 @@ class ListingValue(arc4.Struct):
 class DigitalMarketplace(arc4.ARC4Contract):
     def __init__(self) -> None:
         self.listings = BoxMap(ListingKey, ListingValue)
+
+    @subroutine
+    def listings_box_mbr(self) -> UInt64:
+        return (
+            2_500
+            + (
+                # fmt: off
+                # Key prefix
+                self.listings.key_prefix.length +
+                # Key
+                32 + 8 + 8 +
+                # Value
+                8 + 8 + 32 + 8 + 8
+                # fmt: on
+            )
+            * 400
+        )
+
+    @arc4.abimethod(readonly=True)
+    def get_listings_mbr(self) -> UInt64:
+        return self.listings_box_mbr()
 
     @subroutine
     def quantity_price(
@@ -76,7 +92,7 @@ class DigitalMarketplace(arc4.ARC4Contract):
     ) -> None:
         assert mbr_pay.sender == Txn.sender
         assert mbr_pay.receiver == Global.current_application_address
-        assert mbr_pay.amount == FOR_SALE_BOX_MBR
+        assert mbr_pay.amount == self.listings_box_mbr()
 
         key = ListingKey(
             arc4.Address(Txn.sender), arc4.UInt64(xfer.xfer_asset.id), nonce
@@ -134,7 +150,7 @@ class DigitalMarketplace(arc4.ARC4Contract):
 
         del self.listings[key]
 
-        itxn.Payment(receiver=Txn.sender, amount=FOR_SALE_BOX_MBR).submit()
+        itxn.Payment(receiver=Txn.sender, amount=self.listings_box_mbr()).submit()
 
         itxn.AssetTransfer(
             xfer_asset=asset,
